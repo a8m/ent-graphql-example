@@ -1,4 +1,4 @@
-package main
+package todo
 
 import (
 	"context"
@@ -34,21 +34,17 @@ func Example_Todo() {
 	if err := task2.Update().SetParent(task1).Exec(ctx); err != nil {
 		log.Fatalf("failed connecting todo2 to its parent: %v", err)
 	}
-	// Query all todo items that don't depend on other items and have items that depend them.
-	items, err := client.Todo.Query().
-		Where(
-			todo.Not(
-				todo.HasParent(),
-			),
-			todo.HasChildren(),
-		).
-		All(ctx)
+	// Get a parent item through its children and expect the
+	// query to return exactly one item.
+	parent, err := client.Todo.
+		Query().                 // Query all todos.
+		Where(todo.HasParent()). // Filter only those with parents.
+		QueryParent().           // Continue traversals to the parents.
+		Only(ctx)                // Expect exactly one item.
 	if err != nil {
-		log.Fatalf("querying todos: %v", err)
+		log.Fatalf("failed querying todos: %v", err)
 	}
-	for _, t := range items {
-		fmt.Printf("%d: %q\n", t.ID, t.Text)
-	}
+	fmt.Printf("%d: %q\n", parent.ID, parent.Text)
 	// Output:
 	// 1: "Add GraphQL Example"
 }
