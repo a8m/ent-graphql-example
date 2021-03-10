@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"entgo.io/contrib/entgql"
 	"entgo.io/ent/schema/edge"
 	"time"
 
@@ -17,22 +18,40 @@ type Todo struct {
 func (Todo) Fields() []ent.Field {
 	return []ent.Field{
 		field.Text("text").
-			NotEmpty(),
+			NotEmpty().
+			Annotations(
+				entgql.OrderField("TEXT"),
+			),
 		field.Time("created_at").
 			Default(time.Now).
-			Immutable(),
+			Immutable().
+			Annotations(
+				entgql.OrderField("CREATED_AT"),
+			),
 		field.Enum("status").
-			Values("in_progress", "completed").
-			Default("in_progress"),
+			NamedValues(
+				"InProgress", "IN_PROGRESS",
+				"Completed", "COMPLETED",
+			).
+			Default("IN_PROGRESS").
+			Annotations(
+				entgql.OrderField("STATUS"),
+			),
 		field.Int("priority").
-			Default(0),
+			Default(0).
+			Annotations(
+				entgql.OrderField("PRIORITY"),
+			),
 	}
 }
+
 // Edges of the Todo.
 func (Todo) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("parent", Todo.Type).
+			Annotations(entgql.Bind()).
 			Unique().
-			From("children"),
+			From("children").
+			Annotations(entgql.Bind()),
 	}
 }

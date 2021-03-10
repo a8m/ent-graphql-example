@@ -4,6 +4,8 @@ package todo
 
 import (
 	"fmt"
+	"io"
+	"strconv"
 	"time"
 )
 
@@ -20,12 +22,10 @@ const (
 	FieldStatus = "status"
 	// FieldPriority holds the string denoting the priority field in the database.
 	FieldPriority = "priority"
-
 	// EdgeChildren holds the string denoting the children edge name in mutations.
 	EdgeChildren = "children"
 	// EdgeParent holds the string denoting the parent edge name in mutations.
 	EdgeParent = "parent"
-
 	// Table holds the table name of the todo in the database.
 	Table = "todos"
 	// ChildrenTable is the table the holds the children relation/edge.
@@ -47,7 +47,8 @@ var Columns = []string{
 	FieldPriority,
 }
 
-// ForeignKeys holds the SQL foreign-keys that are owned by the Todo type.
+// ForeignKeys holds the SQL foreign-keys that are owned by the "todos"
+// table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
 	"todo_parent",
 }
@@ -84,8 +85,8 @@ const DefaultStatus = StatusInProgress
 
 // Status values.
 const (
-	StatusInProgress Status = "in_progress"
-	StatusCompleted  Status = "completed"
+	StatusInProgress Status = "IN_PROGRESS"
+	StatusCompleted  Status = "COMPLETED"
 )
 
 func (s Status) String() string {
@@ -100,4 +101,22 @@ func StatusValidator(s Status) error {
 	default:
 		return fmt.Errorf("todo: invalid enum value for status field: %q", s)
 	}
+}
+
+// MarshalGQL implements graphql.Marshaler interface.
+func (s Status) MarshalGQL(w io.Writer) {
+	io.WriteString(w, strconv.Quote(s.String()))
+}
+
+// UnmarshalGQL implements graphql.Unmarshaler interface.
+func (s *Status) UnmarshalGQL(val interface{}) error {
+	str, ok := val.(string)
+	if !ok {
+		return fmt.Errorf("enum %T must be a string", val)
+	}
+	*s = Status(str)
+	if err := StatusValidator(*s); err != nil {
+		return fmt.Errorf("%s is not a valid Status", str)
+	}
+	return nil
 }
