@@ -6,9 +6,11 @@ The code for https://entgo.io/docs/tutorial-setup
 
 ```console
 git clone git@github.com:a8m/ent-graphql-example.git
-cd ent-graphql-example 
+cd ent-graphql-example
 go run ./cmd/todo/
 ```
+
+Then, open [localhost:8081](http://localhost:8081) to see the GraphQL playground. 
 
 ## Report Issues / Proposals
 
