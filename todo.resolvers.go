@@ -6,17 +6,23 @@ package todo
 import (
 	"context"
 	"todo/ent"
+	"todo/ent/todo"
 )
 
-func (r *mutationResolver) CreateTodo(ctx context.Context, todo TodoInput) (*ent.Todo, error) {
+func (r *mutationResolver) CreateTodo(ctx context.Context, input ent.CreateTodoInput) (*ent.Todo, error) {
+	return ent.FromContext(ctx).Todo.Create().SetInput(input).Save(ctx)
+}
+
+func (r *mutationResolver) UpdateTodo(ctx context.Context, id int, input ent.UpdateTodoInput) (*ent.Todo, error) {
+	return ent.FromContext(ctx).Todo.UpdateOneID(id).SetInput(input).Save(ctx)
+}
+
+func (r *mutationResolver) UpdateTodos(ctx context.Context, ids []int, input ent.UpdateTodoInput) ([]*ent.Todo, error) {
 	client := ent.FromContext(ctx)
-	return client.Todo.
-		Create().
-		SetText(todo.Text).
-		SetStatus(todo.Status).
-		SetNillablePriority(todo.Priority). // Set the "priority" field if provided.
-		SetNillableParentID(todo.Parent).   // Set the "parent_id" field if provided.
-		Save(ctx)
+	if err := client.Todo.Update().Where(todo.IDIn(ids...)).SetInput(input).Exec(ctx); err != nil {
+		return nil, err
+	}
+	return client.Todo.Query().Where(todo.IDIn(ids...)).All(ctx)
 }
 
 func (r *queryResolver) Todos(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int, orderBy *ent.TodoOrder) (*ent.TodoConnection, error) {
