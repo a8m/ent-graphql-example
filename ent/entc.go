@@ -11,9 +11,14 @@ import (
 )
 
 func main() {
-	err := entc.Generate("./schema", &gen.Config{
-		Templates: entgql.AllTemplates,
-	}, entc.TemplateDir("./template"))
+	ex, err := entgql.NewExtension(
+		entgql.WithWhereFilters(true),
+		entgql.WithSchemaPath("../todo.graphql"),
+	)
+	if err != nil {
+		log.Fatalf("creating entgql extension: %v", err)
+	}
+	err = entc.Generate("./schema", &gen.Config{}, entc.Extensions(ex))
 	if err != nil {
 		log.Fatalf("running ent codegen: %v", err)
 	}
