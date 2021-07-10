@@ -3,8 +3,8 @@ module todo
 go 1.16
 
 require (
-	entgo.io/contrib v0.0.0-20210701194530-6b9b6b0bd76c
-	entgo.io/ent v0.8.1-0.20210701094741-72e5b43200e3
+	entgo.io/contrib v0.0.0-20210709131656-a2b04157b717
+	entgo.io/ent v0.8.1-0.20210709131740-4f97976d2bab
 	github.com/99designs/gqlgen v0.13.0
 	github.com/alecthomas/kong v0.2.16 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect

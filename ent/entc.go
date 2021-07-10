@@ -13,13 +13,19 @@ import (
 func main() {
 	ex, err := entgql.NewExtension(
 		entgql.WithWhereFilters(true),
-		entgql.WithSchemaPath("../todo.graphql"),
+		entgql.WithConfigPath("../gqlgen.yml"),
+		// Generate the filters to a separate schema
+		// file and load it in the gqlgen.yml config.
+		entgql.WithSchemaPath("../ent.graphql"),
 	)
 	if err != nil {
 		log.Fatalf("creating entgql extension: %v", err)
 	}
-	err = entc.Generate("./schema", &gen.Config{}, entc.Extensions(ex))
-	if err != nil {
+	opts := []entc.Option{
+		entc.Extensions(ex),
+		entc.TemplateDir("./template"),
+	}
+	if err := entc.Generate("./schema", &gen.Config{}, opts...); err != nil {
 		log.Fatalf("running ent codegen: %v", err)
 	}
 }

@@ -17,6 +17,8 @@ entgo.io/contrib v0.0.0-20210701090259-1dbffc6b38c6 h1:/PeTV4bz/q0c7erbVv0NTpbRM
 entgo.io/contrib v0.0.0-20210701090259-1dbffc6b38c6/go.mod h1:KyosEYfmDUOgMHnVDwoGTTKdhgpCHdRCyiCABk99LOE=
 entgo.io/contrib v0.0.0-20210701194530-6b9b6b0bd76c h1:YrLUTB3naLv5Vz/+OQ9j9LcW8dWVhaBcF9Ym5E+Qc00=
 entgo.io/contrib v0.0.0-20210701194530-6b9b6b0bd76c/go.mod h1:KyosEYfmDUOgMHnVDwoGTTKdhgpCHdRCyiCABk99LOE=
+entgo.io/contrib v0.0.0-20210709131656-a2b04157b717 h1:RBMDKjCsu8GXIDll4bcglMUOjfcCPHEoPccU0VtbS40=
+entgo.io/contrib v0.0.0-20210709131656-a2b04157b717/go.mod h1:KyosEYfmDUOgMHnVDwoGTTKdhgpCHdRCyiCABk99LOE=
 entgo.io/ent v0.6.0 h1:oo/a8sXPQKzHYFlVwmwOnyzBy+u8FWQsoLLqFCrOBt0=
 entgo.io/ent v0.6.0/go.mod h1:+Y513RSj+qleCpyeCmF8leXqAAhCYDJfpzGPIAFPBxc=
 entgo.io/ent v0.7.0 h1:E3EjO0cUL61DvUg5ZEZdxa4yTL+4SuZv0LqBExo8CQA=
@@ -30,6 +32,8 @@ entgo.io/ent v0.7.1-0.20210411105810-30c947546f93/go.mod h1:KNjsukat/NJi6zJh1utw
 entgo.io/ent v0.8.1-0.20210630104730-a19a89a141cf/go.mod h1:sP6mGLcM9h6HvJWMb2G+g5eQ8oGklKhOa/0z0Pt/0WI=
 entgo.io/ent v0.8.1-0.20210701094741-72e5b43200e3 h1:KMekOQUQ6bZhVSNhA+Wi9Dp3EVkoz1eTkHeO60z6xjk=
 entgo.io/ent v0.8.1-0.20210701094741-72e5b43200e3/go.mod h1:sP6mGLcM9h6HvJWMb2G+g5eQ8oGklKhOa/0z0Pt/0WI=
+entgo.io/ent v0.8.1-0.20210709131740-4f97976d2bab h1:mMG1Q4/3EX7He3Mp415ZbpRJvfxdpLchcjTwGc03gaQ=
+entgo.io/ent v0.8.1-0.20210709131740-4f97976d2bab/go.mod h1:sP6mGLcM9h6HvJWMb2G+g5eQ8oGklKhOa/0z0Pt/0WI=
 github.com/99designs/gqlgen v0.13.0 h1:haLTcUp3Vwp80xMVEg5KRNwzfUrgFdRmtBY8fuB8scA=
 github.com/99designs/gqlgen v0.13.0/go.mod h1:NV130r6f4tpRWuAI+zsrSdooO/eWUv+Gyyoi3rEfXIk=
 github.com/AlekSi/pointer v1.1.0/go.mod h1:y7BvfRI3wXPWKXEBhU71nbnIEEZX0QTSB2Bj48UJIZE=

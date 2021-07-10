@@ -1,6 +1,7 @@
 # schema tells gqlgen when the GraphQL schema is located.
 schema:
   - todo.graphql
+  - ent.graphql
 
 # resolver reports where the resolver implementations go.
 resolver:
@@ -14,6 +15,7 @@ resolver:
 # provided package. If they match it will use them, otherwise it will generate new.
 autobind:
   - todo/ent
+  - todo/ent/todo
 
 # This section declares type mapping between the GraphQL and Go type systems.
 models:
@@ -24,6 +26,3 @@ models:
   Node:
     model:
       - todo/ent.Noder
-  Status:
-    model:
-      - todo/ent/todo.Status
