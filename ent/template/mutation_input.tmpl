@@ -14,7 +14,9 @@
     // {{ $input }} represents a mutation input for creating {{ plural $n.Name | lower }}.
     type {{ $input }} struct {
         {{- range $f := $n.Fields }}
-            {{ $f.StructField }} {{ if and (or $f.Optional $f.Default) (not $f.Type.RType.IsPtr) }}*{{ end }}{{ $f.Type }}
+            {{- if not $f.IsEdgeField }}
+                {{ $f.StructField }} {{ if and (or $f.Optional $f.Default) (not $f.Type.RType.IsPtr) }}*{{ end }}{{ $f.Type }}
+            {{- end }}
         {{- end }}
         {{- range $e := $n.Edges }}
             {{- if $e.Unique }}
@@ -28,12 +30,14 @@
     // Mutate applies the {{ $input }} on the {{ $n.CreateName }} builder.
     func (i *{{ $input }}) Mutate(m *{{ $n.CreateName }}) {
         {{- range $f := $n.Fields }}
-            {{- if or $f.Optional $f.Default }}
-                if v := i.{{ $f.StructField }}; v != nil {
-                    m.{{ $f.MutationSet }}(*v)
-                }
-            {{- else }}
-                m.{{ $f.MutationSet }}(i.{{ $f.StructField }})
+            {{- if not $f.IsEdgeField }}
+                {{- if or $f.Optional $f.Default }}
+                    if v := i.{{ $f.StructField }}; v != nil {
+                        m.{{ $f.MutationSet }}(*v)
+                    }
+                {{- else }}
+                    m.{{ $f.MutationSet }}(i.{{ $f.StructField }})
+                {{- end }}
             {{- end }}
         {{- end }}
         {{- range $e := $n.Edges }}
