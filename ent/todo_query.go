@@ -360,8 +360,8 @@ func (tq *TodoQuery) GroupBy(field string, fields ...string) *TodoGroupBy {
 //		Select(todo.FieldText).
 //		Scan(ctx, &v)
 //
-func (tq *TodoQuery) Select(field string, fields ...string) *TodoSelect {
-	tq.fields = append([]string{field}, fields...)
+func (tq *TodoQuery) Select(fields ...string) *TodoSelect {
+	tq.fields = append(tq.fields, fields...)
 	return &TodoSelect{TodoQuery: tq}
 }
 
@@ -550,6 +550,9 @@ func (tq *TodoQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if tq.sql != nil {
 		selector = tq.sql
 		selector.Select(selector.Columns(columns...)...)
+	}
+	if tq.unique != nil && *tq.unique {
+		selector.Distinct()
 	}
 	for _, p := range tq.predicates {
 		p(selector)

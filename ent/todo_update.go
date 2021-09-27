@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"todo/ent/predicate"
 	"todo/ent/todo"
@@ -20,9 +21,9 @@ type TodoUpdate struct {
 	mutation *TodoMutation
 }
 
-// Where adds a new predicate for the TodoUpdate builder.
+// Where appends a list predicates to the TodoUpdate builder.
 func (tu *TodoUpdate) Where(ps ...predicate.Todo) *TodoUpdate {
-	tu.mutation.predicates = append(tu.mutation.predicates, ps...)
+	tu.mutation.Where(ps...)
 	return tu
 }
 
@@ -159,6 +160,9 @@ func (tu *TodoUpdate) Save(ctx context.Context) (int, error) {
 			return affected, err
 		})
 		for i := len(tu.hooks) - 1; i >= 0; i-- {
+			if tu.hooks[i] == nil {
+				return 0, fmt.Errorf("ent: uninitialized hook (forgotten import ent/runtime?)")
+			}
 			mut = tu.hooks[i](mut)
 		}
 		if _, err := mut.Mutate(ctx, tu.mutation); err != nil {
@@ -194,12 +198,12 @@ func (tu *TodoUpdate) ExecX(ctx context.Context) {
 func (tu *TodoUpdate) check() error {
 	if v, ok := tu.mutation.Text(); ok {
 		if err := todo.TextValidator(v); err != nil {
-			return &ValidationError{Name: "text", err: fmt.Errorf("ent: validator failed for field \"text\": %w", err)}
+			return &ValidationError{Name: "text", err: fmt.Errorf(`ent: validator failed for field "Todo.text": %w`, err)}
 		}
 	}
 	if v, ok := tu.mutation.Status(); ok {
 		if err := todo.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf("ent: validator failed for field \"status\": %w", err)}
+			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Todo.status": %w`, err)}
 		}
 	}
 	return nil
@@ -499,6 +503,9 @@ func (tuo *TodoUpdateOne) Save(ctx context.Context) (*Todo, error) {
 			return node, err
 		})
 		for i := len(tuo.hooks) - 1; i >= 0; i-- {
+			if tuo.hooks[i] == nil {
+				return nil, fmt.Errorf("ent: uninitialized hook (forgotten import ent/runtime?)")
+			}
 			mut = tuo.hooks[i](mut)
 		}
 		if _, err := mut.Mutate(ctx, tuo.mutation); err != nil {
@@ -534,12 +541,12 @@ func (tuo *TodoUpdateOne) ExecX(ctx context.Context) {
 func (tuo *TodoUpdateOne) check() error {
 	if v, ok := tuo.mutation.Text(); ok {
 		if err := todo.TextValidator(v); err != nil {
-			return &ValidationError{Name: "text", err: fmt.Errorf("ent: validator failed for field \"text\": %w", err)}
+			return &ValidationError{Name: "text", err: fmt.Errorf(`ent: validator failed for field "Todo.text": %w`, err)}
 		}
 	}
 	if v, ok := tuo.mutation.Status(); ok {
 		if err := todo.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf("ent: validator failed for field \"status\": %w", err)}
+			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Todo.status": %w`, err)}
 		}
 	}
 	return nil
@@ -558,7 +565,7 @@ func (tuo *TodoUpdateOne) sqlSave(ctx context.Context) (_node *Todo, err error) 
 	}
 	id, ok := tuo.mutation.ID()
 	if !ok {
-		return nil, &ValidationError{Name: "ID", err: fmt.Errorf("missing Todo.ID for update")}
+		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "Todo.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
 	if fields := tuo.fields; len(fields) > 0 {

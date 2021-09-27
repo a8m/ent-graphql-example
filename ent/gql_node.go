@@ -90,9 +90,9 @@ func (t *Todo) Node(ctx context.Context) (node *Node, err error) {
 		Type: "Todo",
 		Name: "children",
 	}
-	node.Edges[0].IDs, err = t.QueryChildren().
+	err = t.QueryChildren().
 		Select(todo.FieldID).
-		Ints(ctx)
+		Scan(ctx, &node.Edges[0].IDs)
 	if err != nil {
 		return nil, err
 	}
@@ -100,9 +100,9 @@ func (t *Todo) Node(ctx context.Context) (node *Node, err error) {
 		Type: "Todo",
 		Name: "parent",
 	}
-	node.Edges[1].IDs, err = t.QueryParent().
+	err = t.QueryParent().
 		Select(todo.FieldID).
-		Ints(ctx)
+		Scan(ctx, &node.Edges[1].IDs)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,6 @@ func (c *Client) noder(ctx context.Context, table string, id int) (Noder, error)
 	case todo.Table:
 		n, err := c.Todo.Query().
 			Where(todo.ID(id)).
-			CollectFields(ctx, "Todo").
 			Only(ctx)
 		if err != nil {
 			return nil, err
@@ -261,7 +260,6 @@ func (c *Client) noders(ctx context.Context, table string, ids []int) ([]Noder, 
 	case todo.Table:
 		nodes, err := c.Todo.Query().
 			Where(todo.IDIn(ids...)).
-			CollectFields(ctx, "Todo").
 			All(ctx)
 		if err != nil {
 			return nil, err

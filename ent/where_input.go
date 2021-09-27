@@ -15,6 +15,16 @@ type TodoWhereInput struct {
 	Or  []*TodoWhereInput `json:"or,omitempty"`
 	And []*TodoWhereInput `json:"and,omitempty"`
 
+	// "id" field predicates.
+	ID      *int  `json:"id,omitempty"`
+	IDNEQ   *int  `json:"idNEQ,omitempty"`
+	IDIn    []int `json:"idIn,omitempty"`
+	IDNotIn []int `json:"idNotIn,omitempty"`
+	IDGT    *int  `json:"idGT,omitempty"`
+	IDGTE   *int  `json:"idGTE,omitempty"`
+	IDLT    *int  `json:"idLT,omitempty"`
+	IDLTE   *int  `json:"idLTE,omitempty"`
+
 	// "text" field predicates.
 	Text             *string  `json:"text,omitempty"`
 	TextNEQ          *string  `json:"textNEQ,omitempty"`
@@ -123,6 +133,30 @@ func (i *TodoWhereInput) P() (predicate.Todo, error) {
 			and = append(and, p)
 		}
 		predicates = append(predicates, todo.And(and...))
+	}
+	if i.ID != nil {
+		predicates = append(predicates, todo.IDEQ(*i.ID))
+	}
+	if i.IDNEQ != nil {
+		predicates = append(predicates, todo.IDNEQ(*i.IDNEQ))
+	}
+	if len(i.IDIn) > 0 {
+		predicates = append(predicates, todo.IDIn(i.IDIn...))
+	}
+	if len(i.IDNotIn) > 0 {
+		predicates = append(predicates, todo.IDNotIn(i.IDNotIn...))
+	}
+	if i.IDGT != nil {
+		predicates = append(predicates, todo.IDGT(*i.IDGT))
+	}
+	if i.IDGTE != nil {
+		predicates = append(predicates, todo.IDGTE(*i.IDGTE))
+	}
+	if i.IDLT != nil {
+		predicates = append(predicates, todo.IDLT(*i.IDLT))
+	}
+	if i.IDLTE != nil {
+		predicates = append(predicates, todo.IDLTE(*i.IDLTE))
 	}
 	if i.Text != nil {
 		predicates = append(predicates, todo.TextEQ(*i.Text))
