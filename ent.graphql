@@ -48,6 +48,16 @@ input TodoWhereInput {
   priorityLT: Int
   priorityLTE: Int
   
+  """id field predicates"""
+  id: ID
+  idNEQ: ID
+  idIn: [ID!]
+  idNotIn: [ID!]
+  idGT: ID
+  idGTE: ID
+  idLT: ID
+  idLTE: ID
+  
   """children edge predicates"""
   hasChildren: Boolean
   hasChildrenWith: [TodoWhereInput!]

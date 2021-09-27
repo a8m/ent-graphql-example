@@ -383,6 +383,11 @@ func (m *TodoMutation) ResetParent() {
 	m.clearedparent = false
 }
 
+// Where appends a list predicates to the TodoMutation builder.
+func (m *TodoMutation) Where(ps ...predicate.Todo) {
+	m.predicates = append(m.predicates, ps...)
+}
+
 // Op returns the operation name.
 func (m *TodoMutation) Op() Op {
 	return m.op

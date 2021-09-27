@@ -28,11 +28,11 @@ const (
 	EdgeParent = "parent"
 	// Table holds the table name of the todo in the database.
 	Table = "todos"
-	// ChildrenTable is the table the holds the children relation/edge.
+	// ChildrenTable is the table that holds the children relation/edge.
 	ChildrenTable = "todos"
 	// ChildrenColumn is the table column denoting the children relation/edge.
 	ChildrenColumn = "todo_parent"
-	// ParentTable is the table the holds the parent relation/edge.
+	// ParentTable is the table that holds the parent relation/edge.
 	ParentTable = "todos"
 	// ParentColumn is the table column denoting the parent relation/edge.
 	ParentColumn = "todo_parent"
