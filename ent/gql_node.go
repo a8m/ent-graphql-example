@@ -179,6 +179,7 @@ func (c *Client) noder(ctx context.Context, table string, id int) (Noder, error)
 	case todo.Table:
 		n, err := c.Todo.Query().
 			Where(todo.ID(id)).
+			CollectFields(ctx, "Todo").
 			Only(ctx)
 		if err != nil {
 			return nil, err
@@ -260,6 +261,7 @@ func (c *Client) noders(ctx context.Context, table string, ids []int) ([]Noder, 
 	case todo.Table:
 		nodes, err := c.Todo.Query().
 			Where(todo.IDIn(ids...)).
+			CollectFields(ctx, "Todo").
 			All(ctx)
 		if err != nil {
 			return nil, err

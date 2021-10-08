@@ -3,7 +3,7 @@ module todo
 go 1.17
 
 require (
-	entgo.io/contrib v0.1.1-0.20210915070855-f0f3d8e8f57d
+	entgo.io/contrib v0.1.1-0.20211006191841-43b855f4c779
 	entgo.io/ent v0.9.2-0.20210927144957-4306643d16b3
 	github.com/99designs/gqlgen v0.14.0
 	github.com/alecthomas/kong v0.2.16
