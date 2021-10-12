@@ -20,9 +20,11 @@
         {{- end }}
         {{- range $e := $n.Edges }}
             {{- if $e.Unique }}
-                {{ $e.StructField }} {{ if $e.Optional }}*{{ end }}{{ $e.Type.ID.Type }}
+                {{- $structField := print (pascal $e.Name) "ID" }}
+                {{ $structField }} {{ if $e.Optional }}*{{ end }}{{ $e.Type.ID.Type }}
             {{- else }}
-                {{ $e.StructField }} []{{ $e.Type.ID.Type }}
+                {{- $structField := print (singular $e.Name | pascal) "IDs" }}
+                {{ $structField }} []{{ $e.Type.ID.Type }}
             {{- end }}
         {{- end }}
     }
@@ -42,15 +44,17 @@
         {{- end }}
         {{- range $e := $n.Edges }}
             {{- if $e.Unique }}
+                {{- $structField := print (pascal $e.Name) "ID" }}
                 {{- if $e.Optional }}
-                    if v := i.{{ $e.StructField }}; v != nil {
+                    if v := i.{{ $structField }}; v != nil {
                         m.{{ $e.MutationSet }}(*v)
                     }
                 {{- else }}
-                    m.{{ $e.MutationSet }}(i.{{ $e.StructField }})
+                    m.{{ $e.MutationSet }}(i.{{ $structField }})
                 {{- end }}
             {{- else }}
-                if ids := i.{{ $e.StructField }}; len(ids) > 0 {
+                {{- $structField := print (singular $e.Name | pascal) "IDs" }}
+                if ids := i.{{ $structField }}; len(ids) > 0 {
                     m.{{ $e.MutationAdd }}(ids...)
                 }
             {{- end }}
@@ -67,14 +71,17 @@
     // {{ $input }} represents a mutation input for updating {{ plural $n.Name | lower }}.
     type {{ $input }} struct {
         {{- range $f := $n.MutableFields }}
-            {{ $f.StructField }} {{ if not $f.Type.RType.IsPtr }}*{{ end }}{{ $f.Type }}
-            {{- if $f.Optional }}
-                {{ print "Clear" $f.StructField }} bool
+            {{- if not $f.IsEdgeField }}
+                {{ $f.StructField }} {{ if not $f.Type.RType.IsPtr }}*{{ end }}{{ $f.Type }}
+                {{- if $f.Optional }}
+                    {{ print "Clear" $f.StructField }} bool
+                {{- end }}
             {{- end }}
         {{- end }}
         {{- range $e := $n.Edges }}
             {{- if $e.Unique }}
-                {{ $e.StructField }} *{{ $e.Type.ID.Type }}
+                {{- $structField := print (pascal $e.Name) "ID" }}
+                {{ $structField }} *{{ $e.Type.ID.Type }}
                 {{ $e.MutationClear }} bool
             {{- else }}
                 {{ $e.MutationAdd }} []{{ $e.Type.ID.Type }}
@@ -86,21 +93,24 @@
     // Mutate applies the {{ $input }} on the {{ $n.MutationName }}.
     func (i *{{ $input }}) Mutate(m *{{ $n.MutationName }}) {
         {{- range $f := $n.MutableFields }}
-             {{- if $f.Optional }}
-                 if i.{{ print "Clear" $f.StructField }} {
-                    m.{{ print "Clear" $f.StructField }}()
-                 }
+            {{- if not $f.IsEdgeField }}
+                {{- if $f.Optional }}
+                    if i.{{ print "Clear" $f.StructField }} {
+                        m.{{ print "Clear" $f.StructField }}()
+                    }
+                {{- end }}
+                if v := i.{{ $f.StructField }}; v != nil {
+                    m.{{ $f.MutationSet }}(*v)
+                }
             {{- end }}
-            if v := i.{{ $f.StructField }}; v != nil {
-                m.{{ $f.MutationSet }}(*v)
-            }
         {{- end }}
         {{- range $e := $n.Edges }}
             {{- if $e.Unique }}
                 if i.{{ $e.MutationClear }} {
                     m.{{ $e.MutationClear }}()
                 }
-                if v := i.{{ $e.StructField }}; v != nil {
+                {{- $structField := print (pascal $e.Name) "ID" }}
+                if v := i.{{ $structField }}; v != nil {
                     m.{{ $e.MutationSet }}(*v)
                 }
             {{- else }}
