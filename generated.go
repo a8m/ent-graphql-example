@@ -444,8 +444,8 @@ input CreateTodoInput {
   status: Status! = IN_PROGRESS
   priority: Int
   text: String
-  parent: ID
-  children: [ID!]
+  parentID: ID
+  ChildIDs: [ID!]
 }
 
 """
@@ -459,7 +459,7 @@ input UpdateTodoInput {
   status: Status
   priority: Int
   text: String
-  parent: ID
+  parentID: ID
   clearParent: Boolean
   addChildIDs: [ID!]
   removeChildIDs: [ID!]
@@ -2780,19 +2780,19 @@ func (ec *executionContext) unmarshalInputCreateTodoInput(ctx context.Context, o
 			if err != nil {
 				return it, err
 			}
-		case "parent":
+		case "parentID":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("parent"))
-			it.Parent, err = ec.unmarshalOID2ᚖint(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("parentID"))
+			it.ParentID, err = ec.unmarshalOID2ᚖint(ctx, v)
 			if err != nil {
 				return it, err
 			}
-		case "children":
+		case "ChildIDs":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("children"))
-			it.Children, err = ec.unmarshalOID2ᚕintᚄ(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ChildIDs"))
+			it.ChildIDs, err = ec.unmarshalOID2ᚕintᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3265,11 +3265,11 @@ func (ec *executionContext) unmarshalInputUpdateTodoInput(ctx context.Context, o
 			if err != nil {
 				return it, err
 			}
-		case "parent":
+		case "parentID":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("parent"))
-			it.Parent, err = ec.unmarshalOID2ᚖint(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("parentID"))
+			it.ParentID, err = ec.unmarshalOID2ᚖint(ctx, v)
 			if err != nil {
 				return it, err
 			}
