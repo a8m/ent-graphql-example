@@ -81,8 +81,8 @@ input CreateTodoInput {
   status: Status! = IN_PROGRESS
   priority: Int
   text: String
-  parent: ID
-  children: [ID!]
+  parentID: ID
+  ChildIDs: [ID!]
 }
 
 """
@@ -96,7 +96,7 @@ input UpdateTodoInput {
   status: Status
   priority: Int
   text: String
-  parent: ID
+  parentID: ID
   clearParent: Boolean
   addChildIDs: [ID!]
   removeChildIDs: [ID!]
