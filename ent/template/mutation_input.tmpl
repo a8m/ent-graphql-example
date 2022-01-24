@@ -1,4 +1,4 @@
-{{ define "mutation_input" }}
+{{ define "gql_mutation_input" }}
 
 {{- /*gotype: entgo.io/ent/entc/gen.Graph*/ -}}
 
@@ -10,6 +10,9 @@
 {{ template "import" $ }}
 
 {{- range $n := $.Nodes }}
+    {{- $annotation := $n.Annotations.EntGQL }}
+    {{- if or (not $annotation) (not $annotation.Skip) }}
+
     {{ $input := print "Create" $n.Name "Input" }}
     // {{ $input }} represents a mutation input for creating {{ plural $n.Name | lower }}.
     type {{ $input }} struct {
@@ -135,5 +138,7 @@
         i.Mutate(u.Mutation())
         return u
     }
+
+    {{- end }}
 {{- end }}
 {{ end }}
