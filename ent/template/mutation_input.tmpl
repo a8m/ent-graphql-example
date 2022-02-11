@@ -41,7 +41,7 @@
             {{- range $f := $n.Fields }}
                 {{- $annotation := $f.Annotations.EntGQL }}
                 {{- if and (not $f.IsEdgeField) (or (not $annotation) (not $annotation.Skip)) }}
-                    {{- if or $f.Optional $f.Default }}
+                    {{- if and (or $f.Optional $f.Default) (not $f.Type.RType.IsPtr) }}
                         if v := i.{{ $f.StructField }}; v != nil {
                             m.{{ $f.MutationSet }}(*v)
                         }
@@ -115,7 +115,7 @@
                         }
                     {{- end }}
                     if v := i.{{ $f.StructField }}; v != nil {
-                        m.{{ $f.MutationSet }}(*v)
+                        m.{{ $f.MutationSet }}({{if not $f.Type.RType.IsPtr}}*{{ end }}v)
                     }
                 {{- end }}
             {{- end }}
