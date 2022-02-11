@@ -115,7 +115,7 @@
                         }
                     {{- end }}
                     if v := i.{{ $f.StructField }}; v != nil {
-                        m.{{ $f.MutationSet }}({{if not $f.Type.RType.IsPtr}}*{{ end }}v)
+                        m.{{ $f.MutationSet }}({{ if not $f.Type.RType.IsPtr }}*{{ end }}v)
                     }
                 {{- end }}
             {{- end }}
