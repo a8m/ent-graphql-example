@@ -1,9 +1,11 @@
 package schema
 
 import (
-	"entgo.io/contrib/entgql"
-	"entgo.io/ent/schema/edge"
 	"time"
+
+	"entgo.io/contrib/entgql"
+	"entgo.io/ent/schema"
+	"entgo.io/ent/schema/edge"
 
 	"entgo.io/ent"
 	"entgo.io/ent/schema/field"
@@ -53,5 +55,12 @@ func (Todo) Edges() []ent.Edge {
 			Unique().
 			From("children").
 			Annotations(entgql.Bind()),
+	}
+}
+
+func (Todo) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entgql.RelayConnection(),
+		entgql.QueryField(),
 	}
 }
