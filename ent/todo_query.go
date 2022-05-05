@@ -5,7 +5,6 @@ package ent
 import (
 	"context"
 	"database/sql/driver"
-	"errors"
 	"fmt"
 	"math"
 	"todo/ent/predicate"
@@ -29,6 +28,8 @@ type TodoQuery struct {
 	withChildren *TodoQuery
 	withParent   *TodoQuery
 	withFKs      bool
+	modifiers    []func(*sql.Selector)
+	loadTotal    []func(context.Context, []*Todo) error
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -155,7 +156,7 @@ func (tq *TodoQuery) FirstIDX(ctx context.Context) int {
 }
 
 // Only returns a single Todo entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when exactly one Todo entity is not found.
+// Returns a *NotSingularError when more than one Todo entity is found.
 // Returns a *NotFoundError when no Todo entities are found.
 func (tq *TodoQuery) Only(ctx context.Context) (*Todo, error) {
 	nodes, err := tq.Limit(2).All(ctx)
@@ -182,7 +183,7 @@ func (tq *TodoQuery) OnlyX(ctx context.Context) *Todo {
 }
 
 // OnlyID is like Only, but returns the only Todo ID in the query.
-// Returns a *NotSingularError when exactly one Todo ID is not found.
+// Returns a *NotSingularError when more than one Todo ID is found.
 // Returns a *NotFoundError when no entities are found.
 func (tq *TodoQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
@@ -293,8 +294,9 @@ func (tq *TodoQuery) Clone() *TodoQuery {
 		withChildren: tq.withChildren.Clone(),
 		withParent:   tq.withParent.Clone(),
 		// clone intermediate query.
-		sql:  tq.sql.Clone(),
-		path: tq.path,
+		sql:    tq.sql.Clone(),
+		path:   tq.path,
+		unique: tq.unique,
 	}
 }
 
@@ -336,15 +338,17 @@ func (tq *TodoQuery) WithParent(opts ...func(*TodoQuery)) *TodoQuery {
 //		Scan(ctx, &v)
 //
 func (tq *TodoQuery) GroupBy(field string, fields ...string) *TodoGroupBy {
-	group := &TodoGroupBy{config: tq.config}
-	group.fields = append([]string{field}, fields...)
-	group.path = func(ctx context.Context) (prev *sql.Selector, err error) {
+	grbuild := &TodoGroupBy{config: tq.config}
+	grbuild.fields = append([]string{field}, fields...)
+	grbuild.path = func(ctx context.Context) (prev *sql.Selector, err error) {
 		if err := tq.prepareQuery(ctx); err != nil {
 			return nil, err
 		}
 		return tq.sqlQuery(ctx), nil
 	}
-	return group
+	grbuild.label = todo.Label
+	grbuild.flds, grbuild.scan = &grbuild.fields, grbuild.Scan
+	return grbuild
 }
 
 // Select allows the selection one or more fields/columns for the given query,
@@ -362,7 +366,10 @@ func (tq *TodoQuery) GroupBy(field string, fields ...string) *TodoGroupBy {
 //
 func (tq *TodoQuery) Select(fields ...string) *TodoSelect {
 	tq.fields = append(tq.fields, fields...)
-	return &TodoSelect{TodoQuery: tq}
+	selbuild := &TodoSelect{TodoQuery: tq}
+	selbuild.label = todo.Label
+	selbuild.flds, selbuild.scan = &tq.fields, selbuild.Scan
+	return selbuild
 }
 
 func (tq *TodoQuery) prepareQuery(ctx context.Context) error {
@@ -381,7 +388,7 @@ func (tq *TodoQuery) prepareQuery(ctx context.Context) error {
 	return nil
 }
 
-func (tq *TodoQuery) sqlAll(ctx context.Context) ([]*Todo, error) {
+func (tq *TodoQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Todo, error) {
 	var (
 		nodes       = []*Todo{}
 		withFKs     = tq.withFKs
@@ -398,17 +405,19 @@ func (tq *TodoQuery) sqlAll(ctx context.Context) ([]*Todo, error) {
 		_spec.Node.Columns = append(_spec.Node.Columns, todo.ForeignKeys...)
 	}
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
-		node := &Todo{config: tq.config}
-		nodes = append(nodes, node)
-		return node.scanValues(columns)
+		return (*Todo).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []interface{}) error {
-		if len(nodes) == 0 {
-			return fmt.Errorf("ent: Assign called without calling ScanValues")
-		}
-		node := nodes[len(nodes)-1]
+		node := &Todo{config: tq.config}
+		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
+	}
+	if len(tq.modifiers) > 0 {
+		_spec.Modifiers = tq.modifiers
+	}
+	for i := range hooks {
+		hooks[i](ctx, _spec)
 	}
 	if err := sqlgraph.QueryNodes(ctx, tq.driver, _spec); err != nil {
 		return nil, err
@@ -475,11 +484,23 @@ func (tq *TodoQuery) sqlAll(ctx context.Context) ([]*Todo, error) {
 		}
 	}
 
+	for i := range tq.loadTotal {
+		if err := tq.loadTotal[i](ctx, nodes); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
 }
 
 func (tq *TodoQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := tq.querySpec()
+	if len(tq.modifiers) > 0 {
+		_spec.Modifiers = tq.modifiers
+	}
+	_spec.Node.Columns = tq.fields
+	if len(tq.fields) > 0 {
+		_spec.Unique = tq.unique != nil && *tq.unique
+	}
 	return sqlgraph.CountNodes(ctx, tq.driver, _spec)
 }
 
@@ -574,6 +595,7 @@ func (tq *TodoQuery) sqlQuery(ctx context.Context) *sql.Selector {
 // TodoGroupBy is the group-by builder for Todo entities.
 type TodoGroupBy struct {
 	config
+	selector
 	fields []string
 	fns    []AggregateFunc
 	// intermediate query (i.e. traversal path).
@@ -595,209 +617,6 @@ func (tgb *TodoGroupBy) Scan(ctx context.Context, v interface{}) error {
 	}
 	tgb.sql = query
 	return tgb.sqlScan(ctx, v)
-}
-
-// ScanX is like Scan, but panics if an error occurs.
-func (tgb *TodoGroupBy) ScanX(ctx context.Context, v interface{}) {
-	if err := tgb.Scan(ctx, v); err != nil {
-		panic(err)
-	}
-}
-
-// Strings returns list of strings from group-by.
-// It is only allowed when executing a group-by query with one field.
-func (tgb *TodoGroupBy) Strings(ctx context.Context) ([]string, error) {
-	if len(tgb.fields) > 1 {
-		return nil, errors.New("ent: TodoGroupBy.Strings is not achievable when grouping more than 1 field")
-	}
-	var v []string
-	if err := tgb.Scan(ctx, &v); err != nil {
-		return nil, err
-	}
-	return v, nil
-}
-
-// StringsX is like Strings, but panics if an error occurs.
-func (tgb *TodoGroupBy) StringsX(ctx context.Context) []string {
-	v, err := tgb.Strings(ctx)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-// String returns a single string from a group-by query.
-// It is only allowed when executing a group-by query with one field.
-func (tgb *TodoGroupBy) String(ctx context.Context) (_ string, err error) {
-	var v []string
-	if v, err = tgb.Strings(ctx); err != nil {
-		return
-	}
-	switch len(v) {
-	case 1:
-		return v[0], nil
-	case 0:
-		err = &NotFoundError{todo.Label}
-	default:
-		err = fmt.Errorf("ent: TodoGroupBy.Strings returned %d results when one was expected", len(v))
-	}
-	return
-}
-
-// StringX is like String, but panics if an error occurs.
-func (tgb *TodoGroupBy) StringX(ctx context.Context) string {
-	v, err := tgb.String(ctx)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-// Ints returns list of ints from group-by.
-// It is only allowed when executing a group-by query with one field.
-func (tgb *TodoGroupBy) Ints(ctx context.Context) ([]int, error) {
-	if len(tgb.fields) > 1 {
-		return nil, errors.New("ent: TodoGroupBy.Ints is not achievable when grouping more than 1 field")
-	}
-	var v []int
-	if err := tgb.Scan(ctx, &v); err != nil {
-		return nil, err
-	}
-	return v, nil
-}
-
-// IntsX is like Ints, but panics if an error occurs.
-func (tgb *TodoGroupBy) IntsX(ctx context.Context) []int {
-	v, err := tgb.Ints(ctx)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-// Int returns a single int from a group-by query.
-// It is only allowed when executing a group-by query with one field.
-func (tgb *TodoGroupBy) Int(ctx context.Context) (_ int, err error) {
-	var v []int
-	if v, err = tgb.Ints(ctx); err != nil {
-		return
-	}
-	switch len(v) {
-	case 1:
-		return v[0], nil
-	case 0:
-		err = &NotFoundError{todo.Label}
-	default:
-		err = fmt.Errorf("ent: TodoGroupBy.Ints returned %d results when one was expected", len(v))
-	}
-	return
-}
-
-// IntX is like Int, but panics if an error occurs.
-func (tgb *TodoGroupBy) IntX(ctx context.Context) int {
-	v, err := tgb.Int(ctx)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-// Float64s returns list of float64s from group-by.
-// It is only allowed when executing a group-by query with one field.
-func (tgb *TodoGroupBy) Float64s(ctx context.Context) ([]float64, error) {
-	if len(tgb.fields) > 1 {
-		return nil, errors.New("ent: TodoGroupBy.Float64s is not achievable when grouping more than 1 field")
-	}
-	var v []float64
-	if err := tgb.Scan(ctx, &v); err != nil {
-		return nil, err
-	}
-	return v, nil
-}
-
-// Float64sX is like Float64s, but panics if an error occurs.
-func (tgb *TodoGroupBy) Float64sX(ctx context.Context) []float64 {
-	v, err := tgb.Float64s(ctx)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-// Float64 returns a single float64 from a group-by query.
-// It is only allowed when executing a group-by query with one field.
-func (tgb *TodoGroupBy) Float64(ctx context.Context) (_ float64, err error) {
-	var v []float64
-	if v, err = tgb.Float64s(ctx); err != nil {
-		return
-	}
-	switch len(v) {
-	case 1:
-		return v[0], nil
-	case 0:
-		err = &NotFoundError{todo.Label}
-	default:
-		err = fmt.Errorf("ent: TodoGroupBy.Float64s returned %d results when one was expected", len(v))
-	}
-	return
-}
-
-// Float64X is like Float64, but panics if an error occurs.
-func (tgb *TodoGroupBy) Float64X(ctx context.Context) float64 {
-	v, err := tgb.Float64(ctx)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-// Bools returns list of bools from group-by.
-// It is only allowed when executing a group-by query with one field.
-func (tgb *TodoGroupBy) Bools(ctx context.Context) ([]bool, error) {
-	if len(tgb.fields) > 1 {
-		return nil, errors.New("ent: TodoGroupBy.Bools is not achievable when grouping more than 1 field")
-	}
-	var v []bool
-	if err := tgb.Scan(ctx, &v); err != nil {
-		return nil, err
-	}
-	return v, nil
-}
-
-// BoolsX is like Bools, but panics if an error occurs.
-func (tgb *TodoGroupBy) BoolsX(ctx context.Context) []bool {
-	v, err := tgb.Bools(ctx)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-// Bool returns a single bool from a group-by query.
-// It is only allowed when executing a group-by query with one field.
-func (tgb *TodoGroupBy) Bool(ctx context.Context) (_ bool, err error) {
-	var v []bool
-	if v, err = tgb.Bools(ctx); err != nil {
-		return
-	}
-	switch len(v) {
-	case 1:
-		return v[0], nil
-	case 0:
-		err = &NotFoundError{todo.Label}
-	default:
-		err = fmt.Errorf("ent: TodoGroupBy.Bools returned %d results when one was expected", len(v))
-	}
-	return
-}
-
-// BoolX is like Bool, but panics if an error occurs.
-func (tgb *TodoGroupBy) BoolX(ctx context.Context) bool {
-	v, err := tgb.Bool(ctx)
-	if err != nil {
-		panic(err)
-	}
-	return v
 }
 
 func (tgb *TodoGroupBy) sqlScan(ctx context.Context, v interface{}) error {
@@ -832,9 +651,7 @@ func (tgb *TodoGroupBy) sqlQuery() *sql.Selector {
 		for _, f := range tgb.fields {
 			columns = append(columns, selector.C(f))
 		}
-		for _, c := range aggregation {
-			columns = append(columns, c)
-		}
+		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
 	return selector.GroupBy(selector.Columns(tgb.fields...)...)
@@ -843,6 +660,7 @@ func (tgb *TodoGroupBy) sqlQuery() *sql.Selector {
 // TodoSelect is the builder for selecting fields of Todo entities.
 type TodoSelect struct {
 	*TodoQuery
+	selector
 	// intermediate query (i.e. traversal path).
 	sql *sql.Selector
 }
@@ -854,201 +672,6 @@ func (ts *TodoSelect) Scan(ctx context.Context, v interface{}) error {
 	}
 	ts.sql = ts.TodoQuery.sqlQuery(ctx)
 	return ts.sqlScan(ctx, v)
-}
-
-// ScanX is like Scan, but panics if an error occurs.
-func (ts *TodoSelect) ScanX(ctx context.Context, v interface{}) {
-	if err := ts.Scan(ctx, v); err != nil {
-		panic(err)
-	}
-}
-
-// Strings returns list of strings from a selector. It is only allowed when selecting one field.
-func (ts *TodoSelect) Strings(ctx context.Context) ([]string, error) {
-	if len(ts.fields) > 1 {
-		return nil, errors.New("ent: TodoSelect.Strings is not achievable when selecting more than 1 field")
-	}
-	var v []string
-	if err := ts.Scan(ctx, &v); err != nil {
-		return nil, err
-	}
-	return v, nil
-}
-
-// StringsX is like Strings, but panics if an error occurs.
-func (ts *TodoSelect) StringsX(ctx context.Context) []string {
-	v, err := ts.Strings(ctx)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-// String returns a single string from a selector. It is only allowed when selecting one field.
-func (ts *TodoSelect) String(ctx context.Context) (_ string, err error) {
-	var v []string
-	if v, err = ts.Strings(ctx); err != nil {
-		return
-	}
-	switch len(v) {
-	case 1:
-		return v[0], nil
-	case 0:
-		err = &NotFoundError{todo.Label}
-	default:
-		err = fmt.Errorf("ent: TodoSelect.Strings returned %d results when one was expected", len(v))
-	}
-	return
-}
-
-// StringX is like String, but panics if an error occurs.
-func (ts *TodoSelect) StringX(ctx context.Context) string {
-	v, err := ts.String(ctx)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-// Ints returns list of ints from a selector. It is only allowed when selecting one field.
-func (ts *TodoSelect) Ints(ctx context.Context) ([]int, error) {
-	if len(ts.fields) > 1 {
-		return nil, errors.New("ent: TodoSelect.Ints is not achievable when selecting more than 1 field")
-	}
-	var v []int
-	if err := ts.Scan(ctx, &v); err != nil {
-		return nil, err
-	}
-	return v, nil
-}
-
-// IntsX is like Ints, but panics if an error occurs.
-func (ts *TodoSelect) IntsX(ctx context.Context) []int {
-	v, err := ts.Ints(ctx)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-// Int returns a single int from a selector. It is only allowed when selecting one field.
-func (ts *TodoSelect) Int(ctx context.Context) (_ int, err error) {
-	var v []int
-	if v, err = ts.Ints(ctx); err != nil {
-		return
-	}
-	switch len(v) {
-	case 1:
-		return v[0], nil
-	case 0:
-		err = &NotFoundError{todo.Label}
-	default:
-		err = fmt.Errorf("ent: TodoSelect.Ints returned %d results when one was expected", len(v))
-	}
-	return
-}
-
-// IntX is like Int, but panics if an error occurs.
-func (ts *TodoSelect) IntX(ctx context.Context) int {
-	v, err := ts.Int(ctx)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-// Float64s returns list of float64s from a selector. It is only allowed when selecting one field.
-func (ts *TodoSelect) Float64s(ctx context.Context) ([]float64, error) {
-	if len(ts.fields) > 1 {
-		return nil, errors.New("ent: TodoSelect.Float64s is not achievable when selecting more than 1 field")
-	}
-	var v []float64
-	if err := ts.Scan(ctx, &v); err != nil {
-		return nil, err
-	}
-	return v, nil
-}
-
-// Float64sX is like Float64s, but panics if an error occurs.
-func (ts *TodoSelect) Float64sX(ctx context.Context) []float64 {
-	v, err := ts.Float64s(ctx)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-// Float64 returns a single float64 from a selector. It is only allowed when selecting one field.
-func (ts *TodoSelect) Float64(ctx context.Context) (_ float64, err error) {
-	var v []float64
-	if v, err = ts.Float64s(ctx); err != nil {
-		return
-	}
-	switch len(v) {
-	case 1:
-		return v[0], nil
-	case 0:
-		err = &NotFoundError{todo.Label}
-	default:
-		err = fmt.Errorf("ent: TodoSelect.Float64s returned %d results when one was expected", len(v))
-	}
-	return
-}
-
-// Float64X is like Float64, but panics if an error occurs.
-func (ts *TodoSelect) Float64X(ctx context.Context) float64 {
-	v, err := ts.Float64(ctx)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-// Bools returns list of bools from a selector. It is only allowed when selecting one field.
-func (ts *TodoSelect) Bools(ctx context.Context) ([]bool, error) {
-	if len(ts.fields) > 1 {
-		return nil, errors.New("ent: TodoSelect.Bools is not achievable when selecting more than 1 field")
-	}
-	var v []bool
-	if err := ts.Scan(ctx, &v); err != nil {
-		return nil, err
-	}
-	return v, nil
-}
-
-// BoolsX is like Bools, but panics if an error occurs.
-func (ts *TodoSelect) BoolsX(ctx context.Context) []bool {
-	v, err := ts.Bools(ctx)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-// Bool returns a single bool from a selector. It is only allowed when selecting one field.
-func (ts *TodoSelect) Bool(ctx context.Context) (_ bool, err error) {
-	var v []bool
-	if v, err = ts.Bools(ctx); err != nil {
-		return
-	}
-	switch len(v) {
-	case 1:
-		return v[0], nil
-	case 0:
-		err = &NotFoundError{todo.Label}
-	default:
-		err = fmt.Errorf("ent: TodoSelect.Bools returned %d results when one was expected", len(v))
-	}
-	return
-}
-
-// BoolX is like Bool, but panics if an error occurs.
-func (ts *TodoSelect) BoolX(ctx context.Context) bool {
-	v, err := ts.Bool(ctx)
-	if err != nil {
-		panic(err)
-	}
-	return v
 }
 
 func (ts *TodoSelect) sqlScan(ctx context.Context, v interface{}) error {

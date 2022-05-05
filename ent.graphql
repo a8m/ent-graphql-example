@@ -6,7 +6,15 @@ input TodoWhereInput {
   not: TodoWhereInput
   and: [TodoWhereInput!]
   or: [TodoWhereInput!]
-  
+  """id field predicates"""
+  id: ID
+  idNEQ: ID
+  idIn: [ID!]
+  idNotIn: [ID!]
+  idGT: ID
+  idGTE: ID
+  idLT: ID
+  idLTE: ID
   """text field predicates"""
   text: String
   textNEQ: String
@@ -21,7 +29,6 @@ input TodoWhereInput {
   textHasSuffix: String
   textEqualFold: String
   textContainsFold: String
-  
   """created_at field predicates"""
   createdAt: Time
   createdAtNEQ: Time
@@ -31,13 +38,11 @@ input TodoWhereInput {
   createdAtGTE: Time
   createdAtLT: Time
   createdAtLTE: Time
-  
   """status field predicates"""
   status: Status
   statusNEQ: Status
   statusIn: [Status!]
   statusNotIn: [Status!]
-  
   """priority field predicates"""
   priority: Int
   priorityNEQ: Int
@@ -47,21 +52,9 @@ input TodoWhereInput {
   priorityGTE: Int
   priorityLT: Int
   priorityLTE: Int
-  
-  """id field predicates"""
-  id: ID
-  idNEQ: ID
-  idIn: [ID!]
-  idNotIn: [ID!]
-  idGT: ID
-  idGTE: ID
-  idLT: ID
-  idLTE: ID
-  
   """children edge predicates"""
   hasChildren: Boolean
   hasChildrenWith: [TodoWhereInput!]
-  
   """parent edge predicates"""
   hasParent: Boolean
   hasParentWith: [TodoWhereInput!]
