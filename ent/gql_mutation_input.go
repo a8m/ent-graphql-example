@@ -54,7 +54,7 @@ type UpdateTodoInput struct {
 	ClearParent    bool
 }
 
-// Mutate applies the UpdateTodoInput on the TodoMutation.
+// Mutate applies the UpdateTodoInput on the TodoMutation builder.
 func (i *UpdateTodoInput) Mutate(m *TodoMutation) {
 	if v := i.Text; v != nil {
 		m.SetText(*v)

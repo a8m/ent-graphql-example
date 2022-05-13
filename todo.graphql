@@ -3,38 +3,6 @@
 scalar Time
 
 """
-Define an input type for the mutation below.
-https://graphql.org/learn/schema/#input-types
-
-Note that, this type is mapped to the generated
-input type in mutation_input.go.
-"""
-input CreateTodoInput {
-  status: Status! = IN_PROGRESS
-  priority: Int
-  text: String
-  parentID: ID
-  ChildIDs: [ID!]
-}
-
-"""
-Define an input type for the mutation below.
-https://graphql.org/learn/schema/#input-types
-
-Note that, this type is mapped to the generated
-input type in mutation_input.go.
-"""
-input UpdateTodoInput {
-  status: Status
-  priority: Int
-  text: String
-  parentID: ID
-  clearParent: Boolean
-  addChildIDs: [ID!]
-  removeChildIDs: [ID!]
-}
-
-"""
 Define a mutation for creating todos.
 https://graphql.org/learn/queries/#mutations
 """

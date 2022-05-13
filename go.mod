@@ -3,21 +3,21 @@ module todo
 go 1.18
 
 require (
-	entgo.io/contrib v0.2.1-0.20220505093652-9751e7d2001a
-	entgo.io/ent v0.10.2-0.20220505171006-0c75ffc00730
+	entgo.io/contrib v0.2.1-0.20220513120443-ee1f1c4f1d3b
+	entgo.io/ent v0.10.2-0.20220512043615-f2e0bef7a803
 	github.com/99designs/gqlgen v0.17.6-0.20220503133826-3228f36fec50
 	github.com/alecthomas/kong v0.2.16
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/mattn/go-sqlite3 v1.14.10
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/vektah/gqlparser/v2 v2.4.2
+	github.com/vektah/gqlparser/v2 v2.4.3-0.20220508162109-d3d9eb001575
 	github.com/vmihailenco/msgpack/v5 v5.2.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
 )
 
 require (
-	ariga.io/atlas v0.3.8-0.20220504080252-21a1b71b3247 // indirect
+	ariga.io/atlas v0.3.8-0.20220505085539-5ec35b058386 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
