@@ -51,10 +51,8 @@ func (Todo) Fields() []ent.Field {
 func (Todo) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("parent", Todo.Type).
-			Annotations(entgql.Bind()).
 			Unique().
-			From("children").
-			Annotations(entgql.Bind()),
+			From("children"),
 	}
 }
 
@@ -62,5 +60,6 @@ func (Todo) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entgql.RelayConnection(),
 		entgql.QueryField(),
+		entgql.Mutations(entgql.MutationCreate(), entgql.MutationUpdate()),
 	}
 }

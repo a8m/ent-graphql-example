@@ -1,7 +1,7 @@
 # schema tells gqlgen when the GraphQL schema is located.
 schema:
-  - todo.graphql
   - ent.graphql
+  - todo.graphql
 
 # resolver reports where the resolver implementations go.
 resolver:
