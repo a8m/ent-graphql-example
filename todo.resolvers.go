@@ -6,27 +6,16 @@ package todo
 import (
 	"context"
 	"todo/ent"
-	"todo/ent/todo"
 )
 
+// CreateTodo is the resolver for the createTodo field.
 func (r *mutationResolver) CreateTodo(ctx context.Context, input ent.CreateTodoInput) (*ent.Todo, error) {
-	return ent.FromContext(ctx).Todo.Create().SetInput(input).Save(ctx)
+	return r.client.Todo.Create().SetInput(input).Save(ctx)
 }
 
+// UpdateTodo is the resolver for the updateTodo field.
 func (r *mutationResolver) UpdateTodo(ctx context.Context, id int, input ent.UpdateTodoInput) (*ent.Todo, error) {
-	return ent.FromContext(ctx).Todo.UpdateOneID(id).SetInput(input).Save(ctx)
-}
-
-func (r *mutationResolver) UpdateTodos(ctx context.Context, ids []int, input ent.UpdateTodoInput) ([]*ent.Todo, error) {
-	client := ent.FromContext(ctx)
-	if err := client.Todo.Update().Where(todo.IDIn(ids...)).SetInput(input).Exec(ctx); err != nil {
-		return nil, err
-	}
-	return client.Todo.Query().Where(todo.IDIn(ids...)).All(ctx)
-}
-
-func (r *queryResolver) Ping(ctx context.Context) (string, error) {
-	return "pong", nil
+	return r.client.Todo.UpdateOneID(id).SetInput(input).Save(ctx)
 }
 
 // Mutation returns MutationResolver implementation.
