@@ -30,4 +30,8 @@ func (r *queryResolver) Todos(ctx context.Context, after *ent.Cursor, first *int
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+// CreateTodoInput returns CreateTodoInputResolver implementation.
+func (r *Resolver) CreateTodoInput() CreateTodoInputResolver { return &createTodoInputResolver{r} }
+
 type queryResolver struct{ *Resolver }
+type createTodoInputResolver struct{ *Resolver }

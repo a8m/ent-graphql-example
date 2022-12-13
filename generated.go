@@ -41,6 +41,7 @@ type Config struct {
 type ResolverRoot interface {
 	Mutation() MutationResolver
 	Query() QueryResolver
+	CreateTodoInput() CreateTodoInputResolver
 }
 
 type DirectiveRoot struct {
@@ -95,6 +96,10 @@ type QueryResolver interface {
 	Node(ctx context.Context, id int) (ent.Noder, error)
 	Nodes(ctx context.Context, ids []int) ([]ent.Noder, error)
 	Todos(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int, orderBy *ent.TodoOrder, where *ent.TodoWhereInput) (*ent.TodoConnection, error)
+}
+
+type CreateTodoInputResolver interface {
+	CreateChildren(ctx context.Context, obj *ent.CreateTodoInput, data []*ent.CreateTodoInput) error
 }
 
 type executableSchema struct {
@@ -355,7 +360,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 	return introspection.WrapTypeFromDef(parsedSchema, parsedSchema.Types[name]), nil
 }
 
-//go:embed "ent.graphql" "todo.graphql"
+//go:embed "ent.graphql" "todo.graphql" "extended.graphql"
 var sourcesFS embed.FS
 
 func sourceData(filename string) string {
@@ -369,6 +374,7 @@ func sourceData(filename string) string {
 var sources = []*ast.Source{
 	{Name: "ent.graphql", Input: sourceData("ent.graphql"), BuiltIn: false},
 	{Name: "todo.graphql", Input: sourceData("todo.graphql"), BuiltIn: false},
+	{Name: "extended.graphql", Input: sourceData("extended.graphql"), BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -3529,7 +3535,7 @@ func (ec *executionContext) unmarshalInputCreateTodoInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"text", "createdAt", "status", "priority", "childIDs", "parentID"}
+	fieldsInOrder := [...]string{"text", "createdAt", "status", "priority", "childIDs", "parentID", "createChildren"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -3582,6 +3588,17 @@ func (ec *executionContext) unmarshalInputCreateTodoInput(ctx context.Context, o
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("parentID"))
 			it.ParentID, err = ec.unmarshalOID2ᚖint(ctx, v)
 			if err != nil {
+				return it, err
+			}
+		case "createChildren":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("createChildren"))
+			data, err := ec.unmarshalOCreateTodoInput2ᚕᚖtodoᚋentᚐCreateTodoInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			if err = ec.resolvers.CreateTodoInput().CreateChildren(ctx, &it, data); err != nil {
 				return it, err
 			}
 		}
@@ -4830,6 +4847,11 @@ func (ec *executionContext) unmarshalNCreateTodoInput2todoᚋentᚐCreateTodoInp
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNCreateTodoInput2ᚖtodoᚋentᚐCreateTodoInput(ctx context.Context, v interface{}) (*ent.CreateTodoInput, error) {
+	res, err := ec.unmarshalInputCreateTodoInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNCursor2todoᚋentᚐCursor(ctx context.Context, v interface{}) (ent.Cursor, error) {
 	var res ent.Cursor
 	err := res.UnmarshalGQL(v)
@@ -5325,6 +5347,26 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	}
 	res := graphql.MarshalBoolean(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOCreateTodoInput2ᚕᚖtodoᚋentᚐCreateTodoInputᚄ(ctx context.Context, v interface{}) ([]*ent.CreateTodoInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*ent.CreateTodoInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNCreateTodoInput2ᚖtodoᚋentᚐCreateTodoInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }
 
 func (ec *executionContext) unmarshalOCursor2ᚖtodoᚋentᚐCursor(ctx context.Context, v interface{}) (*ent.Cursor, error) {

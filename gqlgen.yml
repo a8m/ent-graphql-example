@@ -2,6 +2,7 @@
 schema:
   - ent.graphql
   - todo.graphql
+  - extended.graphql
 
 # resolver reports where the resolver implementations go.
 resolver:
